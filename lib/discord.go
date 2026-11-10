@@ -117,6 +117,10 @@ func ConfigureDiscordHTTPClient(ip string, timeout time.Duration, globalOverride
 	client = &http.Client{
 		Transport: transport,
 		Timeout:   90 * time.Second,
+		// A redirect goes back to the caller as is: following it would replay a PUT, PATCH or DELETE as a GET on another path.
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
 	contextTimeout = timeout

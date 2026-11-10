@@ -142,3 +142,28 @@ func TestRequestTargetReachesClusterNodeAsReceived(t *testing.T) {
 		})
 	}
 }
+
+func TestRedirectIsReturnedNotFollowed(t *testing.T) {
+	const location = "/api/v10/guilds/103039963636301824/elsewhere"
+	seen := &recorder{}
+	discord := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		seen.ServeHTTP(w, req)
+		if strings.HasSuffix(req.URL.Path, "/moved") {
+			http.Redirect(w, req, location, http.StatusFound)
+		}
+	})
+
+	const target = "/api/v10/guilds/103039963636301824/moved"
+	resp := send(t, newProxy(t, discord), "DELETE", target)
+
+	if resp.StatusCode != http.StatusFound {
+		t.Errorf("status = %d, want 302", resp.StatusCode)
+	}
+	if got := resp.Header.Get("Location"); got != location {
+		t.Errorf("Location = %q, want %q", got, location)
+	}
+	want := []string{requestLine("DELETE", target)}
+	if got := seen.requests(); fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Errorf("discord received %q, want %q", got, want)
+	}
+}
