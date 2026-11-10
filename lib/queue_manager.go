@@ -158,7 +158,7 @@ func (m *QueueManager) calculateRoute(pathHash uint64) string {
 }
 
 func (m *QueueManager) routeRequest(addr string, req *http.Request) (*http.Response, error) {
-	nodeReq, err := http.NewRequestWithContext(req.Context(), req.Method, "http://"+addr+req.URL.Path+"?"+req.URL.RawQuery, req.Body)
+	nodeReq, err := http.NewRequestWithContext(req.Context(), req.Method, "http://"+addr+req.URL.EscapedPath()+"?"+req.URL.RawQuery, req.Body)
 	nodeReq.Header = req.Header.Clone()
 	nodeReq.Header.Set("nirn-routed-to", addr)
 	if err != nil {

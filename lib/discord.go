@@ -214,6 +214,7 @@ func GetBotUser(token string) (*BotUserResponse, error) {
 	return &s, nil
 }
 
+// path is the escaped path: a decoded one would lose a layer of encoding when the URL is parsed again here.
 func doDiscordReq(ctx context.Context, path string, method string, body io.Reader, header http.Header, query string) (*http.Response, error) {
 	discordReq, err := http.NewRequestWithContext(ctx, method, "https://discord.com"+path+"?"+query, body)
 	if err != nil {
@@ -231,7 +232,8 @@ func doDiscordReq(ctx context.Context, path string, method string, body io.Reade
 	}
 
 	if err == nil {
-		route := GetMetricsPath(path)
+		// The decoded path, as the bucket path of the queue is computed from.
+		route := GetMetricsPath(discordReq.URL.Path)
 		status := discordResp.Status
 		method := discordResp.Request.Method
 		elapsed := time.Since(startTime).Seconds()
@@ -253,7 +255,7 @@ func ProcessRequest(ctx context.Context, item *QueueItem) (*http.Response, error
 
 	ctx, cancel := context.WithTimeout(ctx, contextTimeout)
 	defer cancel()
-	discordResp, err := doDiscordReq(ctx, req.URL.Path, req.Method, bytes.NewReader(item.ReqBody), req.Header.Clone(), req.URL.RawQuery)
+	discordResp, err := doDiscordReq(ctx, req.URL.EscapedPath(), req.Method, bytes.NewReader(item.ReqBody), req.Header.Clone(), req.URL.RawQuery)
 
 	if err != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
